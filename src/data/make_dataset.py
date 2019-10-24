@@ -3,6 +3,7 @@ import numpy as np
 import joblib
 import os
 
+
 def main(input_filepath, output_filepath):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
@@ -29,18 +30,19 @@ def save_file(data, save):
     Parameters
     -----------
     data: DataFrame
-    save:   string filename 
+    save: string filename 
     '''
+    if save:
 
-    try:
-        dirName='../../data/interim'
-        os.mkdir(dirName)
-        print("Directory " , dirName ,  " Created ") 
-    except FileExistsError:
-        pass
+        try:
+            dirName='../../data/interim'
+            os.mkdir(dirName)
+            print("Directory " , dirName ,  " Created ") 
+        except FileExistsError:
+            pass
 
-    joblib.dump(data, dirName + '/' + save, compress=True)
-    print('saved as {}'.format(dirName + '/' + save))  
+        joblib.dump(data, dirName + '/' + save, compress=True)
+        print('saved as {}'.format(dirName + '/' + save))  
 
 
 def wrangle_portfolio(filepath='../../data/raw/portfolio.json', save='portfolio.joblib'):
