@@ -6,7 +6,7 @@ import progressbar
 from src.data.make_dataset import save_file
 import re
 import datetime
-
+from sklearn.preprocessing import LabelEncoder
 
 
 def date_features(transcript, save=None):
@@ -401,5 +401,184 @@ def to_numerical_nan(transcript, save=None):
     save_file(transcript, save) 
     return transcript
 
+def historical_features(transcript, save=None):
+    
+    '''
+    Creates features based on past customer history
+    '''
+    transcript['hist_reward_completed'] = 0 
+    transcript['hist_reward_possible'] = 0 
+    transcript['hist_difficulty_completed'] = 0 
+    transcript['hist_difficulty_possible'] = 0 
+    transcript['hist_previous_completed'] = 0 
+    transcript['hist_previous_offers'] = 0
+    transcript['hist_viewed_and_completed'] = 0 
+    transcript['hist_complete_not_viewed'] = 0 
+    transcript['hist_failed_complete'] = 0
+    transcript['hist_viewed'] = 0
+    transcript['hist_received_spend'] = 0
+    transcript['hist_viewed_spend'] = 0
+    
+    transcript.reset_index(inplace=True, drop=True)                          
+    bar = progressbar.ProgressBar()
+    
+    
+    for i in bar(transcript.index):
+        for j in transcript.index[0:i][::-1]:
+            
+            # if different customer, break
+            if transcript.loc[j, 'person'] != transcript.loc[i, 'person']:
+                break            
+            
+            # looping through previous offers, if completed, make additions to total features:
+            if transcript.loc[j, 'completed'] == 1: 
+                transcript.loc[i, 'hist_reward_completed'] += transcript.loc[j, 'reward']
+                transcript.loc[i, 'hist_reward_possible'] += transcript.loc[j, 'reward']
+                transcript.loc[i, 'hist_difficulty_completed'] += transcript.loc[j, 'difficulty']
+                transcript.loc[i, 'hist_difficulty_possible'] += transcript.loc[j, 'difficulty']
+                transcript.loc[i, 'hist_previous_completed'] += 1
+                transcript.loc[i, 'hist_previous_offers'] += 1
+                
+                # if viewed, make additions to view features:
+                if transcript.loc[j, 'viewed'] == 1: 
+                    transcript.loc[i, 'hist_viewed_and_completed'] += 1
+                else:
+                    transcript.loc[i, 'hist_complete_not_viewed'] += 1
+            
+            # if didn't complete offer, make additions to possible features:                                        
+            else:
+                transcript.loc[i, 'hist_reward_possible'] += transcript.loc[j, 'reward']
+                transcript.loc[i, 'hist_difficulty_possible'] += transcript.loc[j, 'difficulty']
+                transcript.loc[i, 'hist_previous_offers'] += 1
+                transcript.loc[i, 'hist_failed_complete'] += 1 
+            
+            # if viewed, make addition to viewed
+            if transcript.loc[j, 'viewed'] == 1:
+                transcript.loc[i, 'hist_viewed'] += 1
+            
+            # increment viewed and received spend
+            transcript.loc[i, 'hist_received_spend'] += transcript.loc[j, 'received_spend']
+            transcript.loc[i, 'hist_viewed_spend'] += transcript.loc[j, 'viewed_spend']
+            
+    save_file(transcript, save)       
+    return transcript
 
 
+
+def column_order(transcript, save=None):
+    '''
+    Removing redundant features and moving target features 'offer_spend' and 'completed'
+    to last columns.
+        
+    Parameters
+    -----------
+    transcript:  DataFrame
+ 
+    Returns
+    -------
+    DataFrame 
+    '''
+    
+    transcript = transcript[['person', 'age', 'income', 'signed_up', 'gender', 'id',
+                'rewarded', 'difficulty', 'reward', 'duration', 'mobile', 'web',
+                'social', 'bogo', 'discount', 'informational', 'time_days', 'date', 'day',
+                'weekday', 'month', 'year', 't_1', 't_3', 't_7', 't_14', 't_21', 't_30',
+                't_1c', 't_3c', 't_7c', 't_14c', 't_21c', 't_30c', 'last_amount', 'received_spend', 
+                'viewed_spend', 'viewed_days_left', 'remaining_to_complete', 'viewed_in_valid', 
+                'viewed', 'last_transaction_days', 'spend>required',
+                'hist_reward_completed', 'hist_reward_possible',
+                'hist_difficulty_completed', 'hist_difficulty_possible',
+                'hist_previous_completed', 'hist_previous_offers',
+                'hist_viewed_and_completed', 'hist_complete_not_viewed',
+                'hist_failed_complete', 'hist_viewed', 'hist_received_spend',
+                'hist_viewed_spend','offer_spend', 'completed']]
+    
+    save_file(transcript, save)
+    return transcript
+
+
+def label_encode_categories(transcript, save=None):
+    '''
+    Label encodes gender and id, removing previous created one hot encoding.
+    
+    Parameters
+    -----------
+    transcript:  DataFrame
+    save:   string filename (default=None)
+            if filename entered, saves output to folder '../../data/interim'
+           
+    Returns
+    -------
+    DataFrame
+    '''
+    le = LabelEncoder()
+    transcript.id = le.fit_transform(transcript.id)
+    le.fit_transform(transcript.id)
+    transcript['gender'] = transcript[['F', 'M', 'O']].idxmax(1)
+    transcript.gender = le.fit_transform(transcript.gender)
+    transcript = transcript.drop(['F', 'M', 'O'], axis=1)
+    
+    save_file(transcript, save)
+    return transcript
+
+
+def build_all_features(transcript, save=None, all=True):
+    '''
+    Runs all feature engineering functions returning processed dataframe
+    
+    Parameters
+    -----------
+    transcript:  DataFrame
+    save:   string filename (default=None)
+            if filename entered, saves output to folder '../../data/interim'
+    all: Bool (default=True)
+        If true saves a time stamped version of the file after each function is run.
+            
+    Returns
+    -------
+    DataFrame
+    '''   
+    
+    def save_str(save):
+        if all == True:
+            saving = re.split('[./]', save)[-2] +'_' + datetime.datetime.now().strftime('%m-%d_%H_%M_%S') + '.joblib'
+        else: 
+            saving = None
+        return saving
+       
+    transcript = src.features.build_features.date_features(transcript, save=save_str(save))
+    print('> date features added')
+
+    transcript = src.features.build_features.create_transaction_ranges(transcript, save=save_str(save))
+    print('> transaction ranges added')
+
+    transcript = src.features.build_features.last_transaction_and_amount(transcript, save=save_str(save))
+
+    transcript = src.features.build_features.viewed_received_spend(transcript, save=save_str(save))
+    print('> view received spending added')    
+    
+    transcript = src.features.build_features.mapping_event(transcript, event='offer viewed', save=save_str(save))
+    print('> mapped offer viewed')
+    
+    transcript = src.features.build_features.mapping_event(transcript, event='offer completed', save=save_str(save))
+    print('> mapped offer completed')
+
+    transcript = src.features.build_features.days_since_transaction(transcript, save=save_str(save))
+    print('> added last transaction days')
+    
+    transcript = src.features.build_features.feature_cleanup(transcript, save=save_str(save))
+    print('> cleaned features')
+   
+    transcript = src.features.build_features.to_numerical_nan(transcript, save=save_str(save))
+    print('> converted to numerical')
+    
+    transcript = src.features.build_features.historical_features(transcript, save=save_str(save))
+    print('> historical features added')
+    
+    transcript = src.features.build_features.label_encode_categories(transcript,save=save_str(save))
+    print('categorical variables encoded')
+        
+    transcript = src.features.build_features.column_order(transcript, save=save_str(save))
+    print('columns reordered')
+    
+    return transcript
