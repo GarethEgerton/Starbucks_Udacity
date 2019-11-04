@@ -44,6 +44,27 @@ def save_file(data, save):
         joblib.dump(data, dirName + '/' + save, compress=True)
         print('saved as {}'.format(dirName + '/' + save))  
 
+    
+def save_file(data, save, dirName='../../data/interim'):
+    '''
+    Helper function saves DataFrame to .joblib format in folder '../../data/interim'
+    
+    Parameters
+    -----------
+    data: DataFrame
+    save: string filename 
+    '''
+
+    try:
+        dirName=dirName
+        os.mkdir(dirName)
+        print("Directory " , dirName ,  " Created ") 
+    except FileExistsError:
+        pass
+
+    joblib.dump(data, dirName + '/' + save, compress=True)
+    print('saved as {}'.format(dirName + '/' + save)) 
+
 
 def wrangle_portfolio(filepath='../../data/raw/portfolio.json', save='portfolio.joblib'):
     '''
