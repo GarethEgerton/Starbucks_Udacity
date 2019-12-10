@@ -12,7 +12,6 @@ def main(input_filepath, output_filepath):
     return 
 
 
-
 def main():
     print('wrangling portfolio data...')
     portfolio = wrangle_portfolio()
@@ -22,6 +21,7 @@ def main():
     
     print('wrangling transcript data...')
     transcript = wrangle_transcript()
+
 
 def save_file(data, save):
     '''
@@ -55,15 +55,16 @@ def save_file(data, save, dirName='../../data/interim'):
     save: string filename 
     '''
 
-    try:
-        dirName=dirName
-        os.mkdir(dirName)
-        print("Directory " , dirName ,  " Created ") 
-    except FileExistsError:
-        pass
+    if save:
+        try:
+            dirName=dirName
+            os.mkdir(dirName)
+            print("Directory " , dirName ,  " Created ") 
+        except FileExistsError:
+            pass
 
-    joblib.dump(data, dirName + '/' + save, compress=True)
-    print('saved as {}'.format(dirName + '/' + save)) 
+        joblib.dump(data, dirName + '/' + save, compress=True)
+        print('saved as {}'.format(dirName + '/' + save)) 
 
 
 def wrangle_portfolio(filepath='../../data/raw/portfolio.json', save='portfolio.joblib'):

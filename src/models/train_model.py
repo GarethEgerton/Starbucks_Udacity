@@ -386,6 +386,81 @@ def grid_search_results(raw_file, num_folds, display_results=True):
     return results_df, best_scores
 
 
+def label_creater(df, label_grid=None):
+    
+    '''
+    Creates prediction label column based on label_grid dictionary criteria
+        
+    Parameters
+    -----------
+    df:  DataFrame
+    label_grid: dictionary to assign labels
+            
+    Returns
+    -------
+    DataFrame
+    '''  
+       
+    
+    df['completed_not_viewed'] = ((df.completed == 1) & (df.viewed == 0)) * label_grid['completed_not_viewed']
+    
+    df['completed_before_viewed'] = (((df.completed == 1) & (df.viewed == 1)) 
+                                       & (df.received_spend > df.difficulty)
+                                     ) * label_grid['completed_before_viewed']
+    
+    # Required completion spending per time left < base rate
+    df['complete_anyway'] = (((df.completed == 1) & (df.viewed == 1)) 
+                                & (df.viewed_spend / df.viewed_days_left <= df.amount_per_day_not_offer)
+                             )* label_grid['complete_anyway']
+    
+    # Required completion spending per time left > base rate
+    df['completed_responsive'] = (((df.completed == 1) & (df.viewed == 1) & ~(df.received_spend > df.difficulty))
+                                 & (((df.viewed_spend / df.viewed_days_left > df.amount_per_day_not_offer) 
+                                    | (pd.isna(df.amount_per_day_not_offer) 
+                                       & ~(df.received_spend > df.difficulty))
+                                    )))* label_grid['completed_responsive']
+    
+    # Didn't complete, spending wasn't increased above base spending
+    df['incomplete_responsive'] = (((df.completed == 0) & (df.viewed == 1)) 
+                                     & ((((df.viewed_spend / df.viewed_days_left) > df.amount_per_day_not_offer))
+                                       | ((df.viewed_spend > 0) & pd.isna(df.amount_per_day_not_offer)
+                                         )))* label_grid['incomplete_responsive']
+        
+    df['no_complete_no_view'] = ((df.completed == 0) & (df.viewed == 0))* label_grid['no_complete_no_view']
+    
+    df['unresponsive'] = ((df['completed_not_viewed']==0) & 
+                          (df['completed_before_viewed']==0) & 
+                          (df['complete_anyway']) & 
+                          (df['completed_responsive']) & 
+                          (df['incomplete_responsive']) & 
+                          (df['no_complete_no_view'])
+                          )* label_grid['unresponsive']  
+    
+    
+    df['label'] = df[['completed_not_viewed', 'completed_before_viewed', 'complete_anyway', 'completed_responsive',
+       'incomplete_responsive', 'unresponsive', 'no_complete_no_view']].sum(axis=1)
+    
+    df.drop(['received_spend',
+            'viewed_spend',
+            'viewed_days_left',
+            'remaining_to_complete',
+            'viewed_in_valid',
+            'viewed',
+            'spend>required',
+            'offer_spend',
+            'completed',
+            'completed_not_viewed',
+            'completed_before_viewed',
+            'complete_anyway',
+            'completed_responsive',
+            'incomplete_responsive',
+            'no_complete_no_view',
+            'unresponsive',], axis=1, inplace=True)
+    
+    return df
+
+
+
 if __name__ == '__main__':
         main()
 
