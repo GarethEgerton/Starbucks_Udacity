@@ -8,7 +8,7 @@ from src.data.make_dataset import save_file
 import catboost
 from catboost import CatBoostClassifier
 from catboost import Pool
-
+from src.utilities import cf_matrix
 
 
 def drop_completion_features(df):
@@ -458,6 +458,61 @@ def label_creater(df, label_grid=None):
             'unresponsive',], axis=1, inplace=True)
     
     return df
+
+
+def exploratory_training(labels=None, labels_compact=None, drop_features=None, feature_engineering=True, **params):
+    df = joblib.load('../../data/interim/transcript_final_optimised.joblib')
+    df = label_creater(df, label_grid=labels)
+    cat_features = [0,4,5,92,93,94,95,96,97]
+
+    df.sort_values('time_days', inplace=True)
+
+    X = df.drop('label', axis=1)
+    
+    if not feature_engineering:    
+        X = X[['person', 'age', 'income', 'signed_up', 'gender', 'id', 'rewarded',
+           'difficulty', 'reward', 'duration', 'mobile', 'web', 'social', 'bogo',
+           'discount', 'informational', 'time_days']]
+        cat_features=[0,4,5]
+    
+    y = df.label
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+    
+    weights = [df.label.value_counts().sum() / df.label.value_counts()[i] for i in range(0, df.label.nunique())]
+
+    train_pool = Pool(data=X_train, label=y_train, cat_features=cat_features)
+    test_pool = Pool(data=X_test, label=y_test, cat_features=cat_features)
+
+    model = CatBoostClassifier(
+        iterations=7000,
+        loss_function='MultiClass',
+        early_stopping_rounds=50,
+        task_type='GPU',
+        cat_features=cat_features,
+        class_weights= weights,
+        verbose=False,
+        **params)    
+
+    model.fit(train_pool,
+          eval_set=test_pool,
+          verbose=500,
+          plot=False);
+    
+    if not labels_compact:
+        labels_compact=labels
+          
+    preds_class = model.predict(X_test)
+    print("")
+    display(F'Learning Rate set to: {model.get_all_params()["learning_rate"]}')
+    display(F'Accuracy Score: {accuracy_score(y_test, preds_class)}')
+    display(F'Weights: {weights}')
+    matrix = confusion_matrix(y_test, preds_class)
+    width = len(labels_compact)*2 + 1
+    cf_matrix.make_confusion_matrix(matrix, figsize=(width,width), cbar=False, categories=labels_compact.keys(), group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos'])
+   
+    print(classification_report(y_test, preds_class, target_names=list(labels_compact.keys()))) 
+
 
 
 
