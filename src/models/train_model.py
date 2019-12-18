@@ -323,7 +323,7 @@ def grid_search_results(raw_file, num_folds, display_results=True):
         
     # read results files for each fold
     for i in range(0, num_folds):
-        results_files[i] = joblib.load('../../models/' + raw_file + str(i) + ".joblib")            
+        results_files[i] = joblib.load(f'../../models/{raw_file}{i}.joblib')            
     
     # join results files in one dataframe
     results_df = pd.concat([results_files[i] for i in range(0, num_folds)], axis=1)
@@ -340,30 +340,37 @@ def grid_search_results(raw_file, num_folds, display_results=True):
     
     # loops through metrics and create mean column for each metric
     metric_names=[]
-    for i in results_df.columns[1:metrics+1]:
+    for i in results_df.columns[0:metrics+1]:
         i = i[:-1]
         metric_names.append(i)
         results_df[i + '_mean'] = results_df[[x for x in results_df.columns if i in x]].mean(axis=1)
     
     results_df.reset_index(drop=True, inplace=True)
-    
+        
+
     # instantiating best_scores dataframe
     best_scores = pd.DataFrame(columns=['Params', 'Metric', 'Score'])
         
-    negative_better = ['logloss', 'iteration']
-    positive_better = ['AUC']
-        
+    negative_better = ['MultiClass', 'iteration', 'logloss']
+    positive_better = ['Accuracy']
+    
+      
     # get index of best parameters
     best_param_idx = []
     for i in metric_names:
-        if i in ['logloss', 'iteration']:
+        if i in negative_better:
             best_param_idx = results_df[i+ '_mean'].idxmin(axis=0)
-        if i in ['AUC']:
+        if i in positive_better:
             best_param_idx = results_df[i+ '_mean'].idxmax(axis=0)
 
         row = pd.DataFrame({'Metric': [i + '_mean'], 'Params': [results_df.loc[best_param_idx, 'Params']], 'Score': [results_df.loc[best_param_idx, i + '_mean']]})
         best_scores = best_scores.append(row, ignore_index=True)
 
+    results_df.insert(0, 'Parameters', results_df.Params)
+    results_df.drop(['Params', 'Param_mean'], axis=1, inplace=True)
+
+    best_scores = best_scores[best_scores.Metric != 'Param_mean']
+    
     if display_results:
         display(best_scores)
     
@@ -378,7 +385,8 @@ def grid_search_results(raw_file, num_folds, display_results=True):
     for i in positive_better:
         positive_columns.extend([x for x in results_df.columns if i in x])
 
-    if display_results:    
+    if display_results:
+
         display(results_df.style
         .highlight_max(subset = positive_columns, color='lightgreen')
         .highlight_min(subset= negative_columns, color='lightgreen'))
@@ -460,21 +468,29 @@ def label_creater(df, label_grid=None):
     return df
 
 
-def exploratory_training(labels=None, labels_compact=None, drop_features=None, feature_engineering=True, **params):
+def exploratory_training(labels=None, labels_compact=None, drop_features=None, feature_engineering=True, verbose=500, **params):
     df = joblib.load('../../data/interim/transcript_final_optimised.joblib')
     df = label_creater(df, label_grid=labels)
-    cat_features = [0,4,5,92,93,94,95,96,97]
 
+    cat_features_name = ['person', 'gender', 'id', 'offer_7', 'offer_14', 'offer_17', 'offer_21', 'offer_24', 'offer_30']
     df.sort_values('time_days', inplace=True)
 
     X = df.drop('label', axis=1)
+
     
     if not feature_engineering:    
         X = X[['person', 'age', 'income', 'signed_up', 'gender', 'id', 'rewarded',
            'difficulty', 'reward', 'duration', 'mobile', 'web', 'social', 'bogo',
            'discount', 'informational', 'time_days']]
-        cat_features=[0,4,5]
-    
+        
+
+
+    if drop_features is not None:
+        
+        X.drop(drop_features, axis=1, inplace=True)
+
+    cat_features = [X.columns.get_loc(i) for i in cat_features_name if i in X.columns]
+       
     y = df.label
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
@@ -491,12 +507,12 @@ def exploratory_training(labels=None, labels_compact=None, drop_features=None, f
         task_type='GPU',
         cat_features=cat_features,
         class_weights= weights,
-        verbose=False,
+        verbose=verbose,
         **params)    
 
     model.fit(train_pool,
           eval_set=test_pool,
-          verbose=500,
+          verbose=verbose,
           plot=False);
     
     if not labels_compact:
@@ -504,14 +520,20 @@ def exploratory_training(labels=None, labels_compact=None, drop_features=None, f
           
     preds_class = model.predict(X_test)
     print("")
-    display(F'Learning Rate set to: {model.get_all_params()["learning_rate"]}')
-    display(F'Accuracy Score: {accuracy_score(y_test, preds_class)}')
-    display(F'Weights: {weights}')
-    matrix = confusion_matrix(y_test, preds_class)
-    width = len(labels_compact)*2 + 1
-    cf_matrix.make_confusion_matrix(matrix, figsize=(width,width), cbar=False, categories=labels_compact.keys(), group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos'])
-   
-    print(classification_report(y_test, preds_class, target_names=list(labels_compact.keys()))) 
+
+    if verbose:
+        display(F'Learning Rate set to: {model.get_all_params()["learning_rate"]}')
+        display(F'Accuracy Score: {accuracy_score(y_test, preds_class)}')
+        display(F'Weights: {weights}')
+        matrix = confusion_matrix(y_test, preds_class)
+        width = len(labels_compact)*2 + 1
+        cf_matrix.make_confusion_matrix(matrix, figsize=(width,width), cbar=False, categories=labels_compact.keys(), group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos'])
+    
+        print(classification_report(y_test, preds_class, target_names=list(labels_compact.keys()))) 
+    
+    else:
+        return accuracy_score(y_test, preds_class)
+        
 
 
 
