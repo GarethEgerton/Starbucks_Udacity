@@ -468,11 +468,13 @@ def label_creater(df, label_grid=None):
     return df
 
 
-def exploratory_training(labels=None, labels_compact=None, drop_features=None, feature_engineering=True, verbose=500, **params):
+def exploratory_training(labels=None, labels_compact=None, drop_features=None, 
+                         feature_engineering=True, verbose=500, return_model=False, **params):
     df = joblib.load('../../data/interim/transcript_final_optimised.joblib')
     df = label_creater(df, label_grid=labels)
 
-    cat_features_name = ['person', 'gender', 'id', 'offer_7', 'offer_14', 'offer_17', 'offer_21', 'offer_24', 'offer_30']
+    cat_features_name = ['person', 'gender', 'id', 'offer_7', 'offer_14', 'offer_17', 
+                         'offer_21', 'offer_24', 'offer_30']
     df.sort_values('time_days', inplace=True)
 
     X = df.drop('label', axis=1)
@@ -485,17 +487,18 @@ def exploratory_training(labels=None, labels_compact=None, drop_features=None, f
         
 
 
-    if drop_features is not None:
-        
+    if drop_features is not None:        
         X.drop(drop_features, axis=1, inplace=True)
 
     cat_features = [X.columns.get_loc(i) for i in cat_features_name if i in X.columns]
        
     y = df.label
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, 
+                                                        random_state=42)
     
-    weights = [df.label.value_counts().sum() / df.label.value_counts()[i] for i in range(0, df.label.nunique())]
+    weights = [df.label.value_counts().sum() / df.label.value_counts()[i] for i in 
+                range(0, df.label.nunique())]
 
     train_pool = Pool(data=X_train, label=y_train, cat_features=cat_features)
     test_pool = Pool(data=X_test, label=y_test, cat_features=cat_features)
@@ -527,13 +530,19 @@ def exploratory_training(labels=None, labels_compact=None, drop_features=None, f
         display(F'Weights: {weights}')
         matrix = confusion_matrix(y_test, preds_class)
         width = len(labels_compact)*2 + 1
-        cf_matrix.make_confusion_matrix(matrix, figsize=(width,width), cbar=False, categories=labels_compact.keys(), group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos'])
+        cf_matrix.make_confusion_matrix(matrix, figsize=(width,width), cbar=False, 
+                                        categories=labels_compact.keys(), group_names = 
+                                        ['True Neg', 'False Pos', 'False Neg', 'True Pos'])
     
         print(classification_report(y_test, preds_class, target_names=list(labels_compact.keys()))) 
     
+    if return_model:
+        return model, X_test, y_test
+        
+
     else:
         return accuracy_score(y_test, preds_class)
-        
+
 
 
 

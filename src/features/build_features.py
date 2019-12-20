@@ -3,77 +3,121 @@ import numpy as np
 import joblib
 import os
 import progressbar
-from src.data.make_dataset import save_file
 import re
 import datetime
-from sklearn.preprocessing import LabelEncoder
 
+from sklearn.preprocessing import LabelEncoder
+from src.data.make_dataset import save_file
 
 def date_features(transcript, save=None):
     ''' 
     Create various date/time features
+    
+    Parameters
+    -----------
+    transcript: DataFrame
+    save:   string filename (default=None)
+            if filename entered, saves output to folder 
+            '../../data/interim' 
+    Returns
+    -------
+    DataFrame
     '''
-        
     transcript['time_days'] = transcript.time / 24
     transcript['date'] = transcript.signed_up + pd.to_timedelta(transcript.time_days, unit='D')
     transcript['day'] = transcript.date.dt.day
     transcript['weekday'] = transcript.date.dt.dayofweek
     transcript['month'] = transcript.date.dt.month
     transcript['year'] = transcript.date.dt.year
-
+    
     save_file(transcript, save) 
     
     return transcript
 
+def df_numpydict(df, df_columns):
+    '''
+    Converts index and specified columns of a dataframe into a 
+    dictionary of numpy arrays. Speeds up loop operations. 
+    
+    Parameters
+    -----------
+    df:  DataFrame
+    df_columns: list of required columns names
+    
+    Returns
+    -------
+    dictionary of numpy arrays
+    '''
+    dict_np = {column: df[column].to_numpy() for column in df_columns}
+    dict_np['index'] = df.index.to_numpy()
+    return dict_np   
 
-def create_transaction_ranges(transcript, save=None):
+def try_join(new_data, transcript):
+    '''
+    Joins new_data DataFrame to transcript DataFrame
+    if columns already exist in transcript, drops them before joining.
+        
+    Parameters
+    -----------
+    new_data: DataFrame
+    transcript: DataFrame
+            
+    Returns
+    -------
+    Dataframe    
     
     '''
-    Creates time bucket fields for total transaction value and number of transactions going back in time from the offer received event.
+    try:
+        transcript.drop(new_data.columns, axis=1, inplace=True)
+    except:
+        pass
+    
+    transcript = transcript.join(new_data)
+    return transcript
+
+def create_transaction_ranges(transcript, save=None):
+    '''
+    Creates time bucket fields for total transaction value and number 
+    of transactions going back in time from offer received.
     
     Parameters
     -----------
     transcript:  DataFrame
     save:   string filename (default=None)
-            if filename entered, saves output to folder '../../data/interim'
-            
+            if filename entered, saves output to folder 
+            '../../data/interim'
     Returns
     -------
     DataFrame
     '''
-
-    transcript['t_1'] = 0
-    transcript['t_3'] = 0
-    transcript['t_7'] = 0
-    transcript['t_14'] = 0
-    transcript['t_21'] = 0
-    transcript['t_30'] = 0
-
-    transcript['t_1c'] = 0
-    transcript['t_3c'] = 0
-    transcript['t_7c'] = 0
-    transcript['t_14c'] = 0
-    transcript['t_21c'] = 0
-    transcript['t_30c'] = 0
     
     transaction_days_range = [30,21,14,7,3,1]  
-
+    hist = {}
+    
+    # initialsiing 
+    for m in transaction_days_range:
+        transaction_range = f't_{m}'       
+        transaction_range_count = f'{transaction_range}c'
+        hist[transaction_range] = np.zeros(transcript.shape[0])
+        hist[transaction_range_count] = np.zeros(transcript.shape[0])
+    
+    # convert required dataframe columns to dictionary of numpy arrays
+    t = df_numpydict(transcript, ['event', 'person', 'time_days', 'amount'])
+   
     bar = progressbar.ProgressBar()
     
     # loop through each row
-    for i in bar(transcript.index):
-        if transcript.loc[i, 'event'] =='offer received':
+    for i in bar(t['index']):
+        if t['event'][i] =='offer received':
             
             # loop backwards through events of customer
-            for j in transcript.index[0:i+1][::-1]:
-                transaction_amount = transcript.loc[j, 'amount']
-                                
-                if transcript.loc[j, 'person'] != transcript.loc[i, 'person']:
-                    break
+            for j in t['index'][0:i][::-1]:
+                if t['person'][j] != t['person'][i]:
+                    break                
                 
                 # if transaction, how many days before offer received?
-                if transcript.loc[j, 'event'] == 'transaction':                                       
-                    date_diff = transcript.loc[i, 'date'] - transcript.loc[j, 'date']
+                if t['event'][j] == 'transaction':                                       
+                    day_diff = t['time_days'][i] - t['time_days'][j]
                     
                     # loop through transaction day ranges and add increment transaction value and
                     # increment transaction count
@@ -81,120 +125,205 @@ def create_transaction_ranges(transcript, save=None):
                         transaction_range = 't_' + str(m)
                         transaction_range_count = transaction_range + 'c'
                         
-                        if date_diff <= pd.Timedelta(days=m):
-                            transcript.loc[i, transaction_range] += transaction_amount
-                            transcript.loc[i, transaction_range_count] += 1
+                        if day_diff <= m:                            
+                            hist[transaction_range][i] += t['amount'][j]
+                            hist[transaction_range_count][i] += 1
+                           
                         else:
                             break
+                            
+    new_data = pd.DataFrame(hist)[['t_1', 't_3', 't_7', 't_14', 't_21', 't_30',
+                                     't_1c', 't_3c', 't_7c', 't_14c', 't_21c', 't_30c']]
     
+    transcript = try_join(new_data, transcript)
+
     save_file(transcript, save)  
 
     return transcript
 
-
-def last_transaction_and_amount(transcript, save=None):
+def last_transaction(transcript, save=None):
     '''
-    Creates last transaction and last amount spend features.
+    Creates last transaction in days and last amount spent features.
     
     Parameters
     -----------
     transcript:  DataFrame
     save:   string filename (default=None)
-            if filename entered, saves output to folder '../../data/interim'
+            if filename entered, saves output to folder 
+            '../../data/interim'
             
     Returns
     -------
     DataFrame
     '''
+    t = df_numpydict(transcript, ['event', 'person', 'time_days', 'amount'])
     
-    transcript['last_transaction'] = 0 
-    transcript['last_amount'] = 0
+    tran_index = transcript.index.to_numpy()
+    tran_event = transcript.event.to_numpy()
+    person = transcript.person.to_numpy()
+    time = transcript.time_days.to_numpy()
+    amount = transcript.amount.to_numpy()
+    
+    last_transaction_days = np.full(transcript.shape[0], np.nan)
+    last_amount = np.full(transcript.shape[0], np.nan)
 
     bar = progressbar.ProgressBar()
     
     # loop through each row
-    for i in bar(transcript.index):
-        if transcript.loc[i, 'event'] =='offer received':
+    for i in bar(t['index']):
+        if t['event'][i] =='offer received':
             
             # loop backwards through events of customer
-            for j in transcript.index[0:i+1][::-1]:
-
-                transaction_amount = transcript.loc[j, 'amount']
-    
-                if transcript.loc[j, 'person'] != transcript.loc[i, 'person']:
+            for j in t['index'][0:i][::-1]:
+  
+                if t['person'][j] != t['person'][i]:
                     break
 
-                if transcript.loc[j, 'event'] == 'transaction':
-                    transcript.loc[i, 'last_transaction'] = transcript.loc[j, 'date']
-                    transcript.loc[i, 'last_amount'] = transcript.loc[j, 'amount']
+                if tran_event[j] == 'transaction':
+                    last_transaction_days[i] = t['time_days'][i] - t['time_days'][j]
+                    last_amount[i] = amount[j]
                     break
     
+    transcript['last_transaction_days'] = last_transaction_days
+    transcript['last_amount'] = last_amount
+            
     save_file(transcript, save)        
 
     return transcript
 
-
 def viewed_received_spend(transcript, save=None):
     '''
-    Creates received_spend, viewed_spend, viewed_days_left, remaining_to_complete, viewed_in_valid feaures
+    Creates received_spend, viewed_spend, viewed_days_left, 
+    remaining_to_complete, viewed_in_valid feautures
     
     Parameters
     -----------
     transcript:  DataFrame
     save:   string filename (default=None)
-            if filename entered, saves output to folder '../../data/interim'
+            if filename entered, saves output to folder 
+            '../../data/interim'
             
     Returns
     -------
     DataFrame
     '''   
+    t = df_numpydict(transcript, ['event', 'person', 'difficulty', 'time_days', 
+                                  'duration', 'amount', 'id'])
     
-    transcript['received_spend'] = 0
-    transcript['viewed_spend'] = 0
-    transcript['viewed_days_left'] = pd.Timedelta(days=-1)
-    transcript['remaining_to_complete'] = 0
-    transcript['viewed_in_valid'] = 0
-   
+    viewed_in_valid = np.zeros(transcript.shape[0])
+    received_spend = np.zeros(transcript.shape[0])
+    viewed_days_left = np.full(transcript.shape[0], 0.0)
+    viewed_spend = np.zeros(transcript.shape[0])
+    remaining_to_complete = np.full(transcript.shape[0], np.nan)
+    viewed_already = np.zeros(transcript.shape[0])
+        
     bar = progressbar.ProgressBar()
+    for i in bar(t['index']):
+        if t['event'][i] == 'offer received':
 
-    for i in bar(transcript.index):
-        if transcript.loc[i, 'event'] == 'offer received':
-
-            for j in transcript.index[i+1:]:                        
+            for j in t['index'][i+1:]:                        
                 
                 # check if still same person
-                if transcript.loc[j, 'person'] != transcript.loc[i, 'person']:
+                if t['person'][j] != t['person'][i]:
                     break
                 
                 # check if period is within duration
-                if transcript.loc[j, 'date'] - transcript.loc[i, 'date'] > pd.Timedelta(days=transcript.loc[i, 'duration']):
+                if t['time_days'][j] - t['time_days'][i] > t['duration'][i]:
                     break
                 
-                # if offer viewed, update how many days left in the offer, update how much remaining spending needed
-                if transcript.loc[j, 'event'] == 'offer viewed':
-                    transcript.loc[i, 'viewed_in_valid'] = True
-                                        
-                    if transcript.loc[i, 'received_spend'] <= transcript.loc[i, 'difficulty']:
-                        transcript.loc[i, 'viewed_days_left'] = pd.Timedelta(days=transcript.loc[i, 'duration']) - (transcript.loc[j, 'date'] - transcript.loc[i, 'date'])
-                        transcript.loc[i, 'remaining_to_complete'] = transcript.loc[i, 'difficulty'] - transcript.loc[i, 'received_spend'] - transcript.loc[i, 'viewed_spend']
-                    else:
-                        transcript.loc[i, 'viewed_days_left'] = pd.Timedelta(days=0)
-                        transcript.loc[i, 'remaining_to_complete'] = 0
-                                
-                # for transactions
-                if transcript.loc[j, 'event'] == 'transaction':
+                # if offer viewed, update how many days left in the 
+                # offer, update how much remaining spending needed
+                if t['event'][j] == 'offer viewed':                
+                    if (viewed_already[j] != 1) and (t['id'][i] == t['id'][j]):
+                        viewed_in_valid[i] = 1
+
+                        if received_spend[i] <= t['difficulty'][i]:                        
+                            viewed_days_left[i] = t['duration'][i]\
+                                                  - (t['time_days'][j] - t['time_days'][i])
+                            
+                            remaining_to_complete[i] = t['difficulty'][i] - received_spend[i]
+                            
+                            if remaining_to_complete[i] < 0:
+                                remaining_to_complete[i] =0
+                            
+                            viewed_already[j] = 1
+
+                        if received_spend[i] > t['difficulty'][i]:  
+                            viewed_days_left[i] = 0
+                            remaining_to_complete[i] = 0
+                            viewed_already[j] = 1
+                     
+                if t['event'][j] == 'transaction':
                     
-                    # update spending when received but not viewed                    
-                    if transcript.loc[i, 'viewed_days_left'] < pd.Timedelta(days=0):
-                        transcript.loc[i, 'received_spend'] += transcript.loc[j, 'amount']
+                    # update spending when received but not viewed      
+                    if viewed_days_left[i] <=0:
+                        received_spend[i] += t['amount'][j]                        
                                            
                     # update spending when viewed
-                    if transcript.loc[i, 'viewed_days_left'] >= pd.Timedelta(days=0):
-                        transcript.loc[i, 'viewed_spend'] += transcript.loc[j, 'amount']
-       
+                    if viewed_days_left[i] > 0:
+                        viewed_spend[i] += t['amount'][j]
+    
+    transcript['received_spend'] = received_spend
+    transcript['viewed_spend'] = viewed_spend
+    transcript['viewed_days_left'] = viewed_days_left
+    transcript['remaining_to_complete'] = remaining_to_complete
+    transcript['viewed_in_valid'] = viewed_in_valid
+    
     save_file(transcript, save)       
 
     return transcript
+    
+def overlap_offer_effect(transcript, save=None):
+    '''
+    Creates overlap offer feature columns [a,b,c,d,e,f,g,h,i,j] with 
+    integer value equal to the duration for which the previous offer 
+    is still valid.
+        
+    Parameters
+    -----------
+    transcript:  DataFrame
+    save:   string filename (default=None)
+            if filename entered, saves output to folder 
+            '../../data/interim'
+            
+    Returns
+    -------
+    DataFrame
+    '''              
+    # convert required dataframe columns to dictionary of numpy arrays
+    t = df_numpydict(transcript, ['event', 'person', 'time_days', 'duration', 'id'])
+    
+    overlap_offer = np.empty(transcript.shape[0], dtype=str)
+    overlap_offer_days = np.full(transcript.shape[0], np.nan)
+            
+    bar = progressbar.ProgressBar()
+    for i in bar(t['index']):
+        if t['event'][i] == 'offer received': 
+
+            # loop backwards through events of customer
+            for j in t['index'][0:i][::-1]:
+                if t['person'][j] != t['person'][i]:
+                    break
+                if t['event'][j] == 'offer completed':
+                    break
+
+                if t['event'][j] == 'offer received':
+                    days_left = t['time_days'][j] - t['time_days'][i] + t['duration'][j]
+                    
+                    if days_left <= 0:
+                        continue
+
+                    overlap_offer_days[i] = days_left
+                    overlap_offer[i] = t['id'][j]
+                               
+    offer_overlap_features = pd.get_dummies(overlap_offer, drop_first=True)\
+                                            .mul(overlap_offer_days, axis=0).replace(0, np.nan)
+    transcript = try_join(offer_overlap_features, transcript)
+    
+    save_file(transcript, save)  
+   
+    return transcript
+
 
 
 def match_verification(transcript, event=None):

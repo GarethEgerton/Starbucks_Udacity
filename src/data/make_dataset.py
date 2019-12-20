@@ -3,16 +3,10 @@ import numpy as np
 import joblib
 import os
 
-
-def main(input_filepath, output_filepath):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
-    """
-
-    return 
-
-
 def main():
+    """ Runs data wrangling scripts to turn raw data from (../raw) into
+    cleaned data ready for feature engineering (savied in ../interim).
+    """
     print('wrangling portfolio data...')
     portfolio = wrangle_portfolio()
     
@@ -23,31 +17,10 @@ def main():
     transcript = wrangle_transcript()
 
 
-def save_file(data, save):
-    '''
-    Saves DataFrame to .joblib format in folder '../../data/interim'
-    
-    Parameters
-    -----------
-    data: DataFrame
-    save: string filename 
-    '''
-    if save:
-
-        try:
-            dirName='../../data/interim'
-            os.mkdir(dirName)
-            print("Directory " , dirName ,  " Created ") 
-        except FileExistsError:
-            pass
-
-        joblib.dump(data, dirName + '/' + save, compress=True)
-        print('saved as {}'.format(dirName + '/' + save))  
-
-    
 def save_file(data, save, dirName='../../data/interim'):
     '''
-    Helper function saves DataFrame to .joblib format in folder '../../data/interim'
+    Helper function saves DataFrame to .joblib format 
+    default folder '../../data/interim'
     
     Parameters
     -----------
@@ -80,23 +53,23 @@ def wrangle_portfolio(filepath='../../data/raw/portfolio.json', save='portfolio.
             
     Returns
     -------
-    DataFrame of processed data
+    DataFrame
     '''
     
     portfolio = pd.read_json(filepath, orient='records', lines=True)
 
     portfolio = portfolio.join(portfolio.channels.str.join('|').str.get_dummies())
     portfolio.drop(['channels', 'email'], axis=1, inplace=True)
-    portfolio = portfolio[['id', 'difficulty', 'reward', 'duration', 'offer_type', 'mobile', 'web', 'social']]
+    portfolio = portfolio[['id', 'difficulty', 'reward', 'duration', 'offer_type', 
+                           'mobile', 'web', 'social']]
     portfolio = portfolio.join(pd.get_dummies(portfolio.offer_type))
     portfolio.drop(['offer_type'], axis=1, inplace=True)
     portfolio.sort_values(['difficulty', 'reward', 'duration'], ascending=False, inplace=True)
     id = list(portfolio['id'])
-    portfolio['old_id'] = id
     portfolio.id = portfolio.id.map({a:b for a,b in zip(id, 'abcdefghij')})
     portfolio.reset_index(drop=True, inplace=True)
     
-    save_file(portfolio, save)
+    save_file(portfolio, 'portw.joblib')
 
     return portfolio
 
@@ -130,8 +103,8 @@ def wrangle_profile(filepath='../../data/raw/profile.json', save='profile.joblib
     return profile
 
 
-def wrangle_transcript(filepath='../../data/raw/transcript.json', portfolio=None, profile=None, save='transcript.joblib'):
-
+def wrangle_transcript(filepath='../../data/raw/transcript.json', portfolio=None, profile=None, 
+                       save='transcript.joblib'):
     '''
     Wrangles and preprocess transcript data into usable format
     
@@ -147,7 +120,7 @@ def wrangle_transcript(filepath='../../data/raw/transcript.json', portfolio=None
             
     Returns
     -------
-    DataFrame of processed data
+    DataFrame 
     '''
     
     if not isinstance(profile, pd.DataFrame):
@@ -172,24 +145,31 @@ def wrangle_transcript(filepath='../../data/raw/transcript.json', portfolio=None
     transcript.drop('offer id', axis=1, inplace=True)
     
     transcript.offer_id = transcript.offer_id.map({a:b for a,b in zip(id, 'abcdefghij')})
-    transcript.rename(columns={'offer_id': 'id', 'reward': 'rewarded', 'became_member_on': 'signed_up'}, inplace=True)
+    transcript.rename(columns={'offer_id': 'id', 'reward': 'rewarded', 
+                               'became_member_on': 'signed_up'}, inplace=True)
     transcript = transcript.merge(portfolio, how='left', on='id')
     transcript = transcript.fillna(value=0)
     transcript.income.replace({0: np.nan}, inplace=True)
     transcript.age.replace({118: np.nan}, inplace=True)
     transcript['cum_amount'] = transcript.groupby('person').amount.cumsum()
-    transcript.event = pd.Categorical(transcript.event, categories=['offer received', 'offer viewed', 'offer completed', 'transaction'], ordered=True)
+    transcript.event = pd.Categorical(transcript.event, 
+                                      categories=['offer received', 'offer viewed', 
+                                                  'offer completed', 'transaction'], ordered=True)
     transcript['offer_id'] = transcript.person + transcript.id.astype(str)
-    transcript = transcript[['offer_id', 'person', 'event', 'time', 'age', 'income', 'signed_up', 'F', 'M', 'O',
-            'amount', 'id', 'rewarded', 'difficulty', 'reward', 'duration', 'mobile', 'web', 
-            'social', 'bogo', 'discount', 'informational', 'cum_amount']]
+    transcript = transcript[['offer_id', 'person', 'event', 'time', 'age', 'income', 'signed_up', 
+                             'F', 'M', 'O', 'amount', 'id', 'rewarded', 'difficulty', 'reward', 
+                             'duration', 'mobile', 'web', 'social', 'bogo', 'discount', 
+                             'informational', 'cum_amount']]
     transcript['offer_multi'] = transcript.offer_id + transcript.event.astype(str)
-    transcript['offer_multi_correction'] = transcript.groupby('offer_multi').offer_id.apply(lambda n: n + (np.arange(len(n))+1).astype(str))
+    transcript['offer_multi_correction'] = transcript.groupby('offer_multi').offer_id.\
+                                            apply(lambda n: n + (np.arange(len(n))+1).astype(str))
     transcript.offer_id = transcript.offer_multi_correction
     transcript.drop(['offer_multi', 'offer_multi_correction'], axis=1, inplace=True)
     transcript['joined'] = (transcript.signed_up - transcript.signed_up.max()).dt.days
     transcript = transcript.join(pd.get_dummies(transcript.event))
-    transcript['id'] = pd.Categorical(transcript.id, categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', '0'], ordered=True)
+    transcript['id'] = pd.Categorical(transcript.id, 
+                                      categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 
+                                                  'j', '0'], ordered=True)
     
     if save:
         save_file(transcript, 'transcript.joblib')
