@@ -1,13 +1,7 @@
 ## Udacity Starbucks Data Science Nano Degree Capstone Project
 
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">Medium Blogpost</a>
+## <a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">Medium Blogpost</a>
 
-Jupyter Notebooks:
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">1. Data_wrangling.ipynb</a>
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">2. Feature_engineering.ipynb</a>
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">3. Label_engineering.ipynb</a>
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">4. Grid_Search.ipynb</a>
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">5. Feature_Importance_and_Conclusion.ipynb</a>
 
 ### Project Overview
 
