@@ -2,6 +2,13 @@
 
 <a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">Medium Blogpost</a>
 
+Jupyter Notebooks:
+<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">1. Data_wrangling.ipynb</a>
+<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">2. Feature_engineering.ipynb</a>
+<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">3. Label_engineering.ipynb</a>
+<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">4. Grid_Search.ipynb</a>
+<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">5. Feature_Importance_and_Conclusion.ipynb</a>
+
 ### Project Overview
 
 This data set contains simulated data that mimics customer behavior on the Starbucks rewards mobile app, provided by Starbucks as a Capstone Project as part of the Udacity Data Science Nano Degree.
