@@ -63,7 +63,7 @@ Project Organization
         ├── __init__.py    <- Makes src a Python module
         │   
         ├── utilities      <- helper scripts 
-        │   └── cf_matrix.py *
+        │   └── cf_matrix.py*
         │
         ├── data           <- Scripts to wrangle data
         │   └── make_dataset.py
@@ -79,25 +79,25 @@ Acknowledgements and References
 
 > https://catboost.ai/docs/concepts/python-reference_catboost.html
 > https://www.analyticsvidhya.com/blog/2017/08/catboost-automated-categorical-data/
-> * confusion matrix code cf_matrix.py visualisation from https://github.com/DTrimarchi10/confusion_matrix Dennit T
+> https://github.com/DTrimarchi10/confusion_matrix *confusion matrix code cf_matrix.py visualisation
 > https://stackoverflow.com/
 > https://www.kaggle.com/
 
 Dependencies used:
-numpy==1.18.0
-pandas==0.25.1
-joblib==0.13.2
-progress==1.5
-progressbar2==3.42.0
-catboost==0.20.2
-scikit-image==0.15.0
-scikit-learn==0.21.3
-scikit-multilearn==0.2.0
-scikit-plot==0.3.7
-scipy==1.3.1
-matplotlib==3.1.1
-seaborn==0.9.0
-scikit-plot==0.3.7
+numpy==1.18.0 <br>
+pandas==0.25.1 <br>
+joblib==0.13.2 <br>
+progress==1.5 <br>
+progressbar2==3.42.0 <br>
+catboost==0.20.2 <br>
+scikit-image==0.15.0 <br>
+scikit-learn==0.21.3 <br>
+scikit-multilearn==0.2.0 <br>
+scikit-plot==0.3.7 <br>
+scipy==1.3.1 <br> 
+matplotlib==3.1.1 <br>
+seaborn==0.9.0 <br> 
+scikit-plot==0.3.7 <br>
 
 
 --------
