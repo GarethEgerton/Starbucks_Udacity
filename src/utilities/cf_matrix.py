@@ -103,6 +103,9 @@ def make_confusion_matrix(cf,
     plt.figure(figsize=figsize)
        
     ax = sns.heatmap(cf,annot=box_labels,fmt="",cmap=cmap,cbar=cbar,xticklabels=categories,yticklabels=categories)
+    plt.yticks(rotation=0)
+    
+
     bottom, top = ax.get_ylim() 
     ax.set_ylim(bottom + 0.5, top - 0.5)
 
