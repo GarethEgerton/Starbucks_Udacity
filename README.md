@@ -1,7 +1,5 @@
-Starbucks_Udacity
-==============================
-
 # Udacity Starbucks Data Science Nano Degree Capstone Project
+==============================
 
 ## Project Overview
 
