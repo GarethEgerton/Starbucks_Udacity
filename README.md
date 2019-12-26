@@ -46,34 +46,34 @@ Project Organization
     ├── LICENSE
     ├── README.md          
     ├── data
-    │   ├── interim        <- Intermediate and processed data that has been transformed.
-    │   └── raw            <- The original, immutable data 
+    │   ├── interim        <- Intermediate and processed data that has been transformed.
+    │   └── raw            <- The original, immutable data 
     │
     ├── models             <- Trained and serialized models, model predictions, model summaries and results
     │
     ├── notebooks          
-    │   └── exploratory    <- Jupyter notebooks.
-    │       ├── 1. Data_wrangling.ipynb
-    │       ├── 2. Feature_engineering.ipynb
-    │       ├── 3. Label_engineering.ipynb
-    │       ├── 4. Grid_Search.ipynb
-    │       └── 5. Feature_Importance_and_Conclusion.ipynb
+    │   └── exploratory    <- Jupyter notebooks.
+    │       ├── 1. Data_wrangling.ipynb
+    │       ├── 2. Feature_engineering.ipynb
+    │       ├── 3. Label_engineering.ipynb
+    │       ├── 4. Grid_Search.ipynb
+    │       └── 5. Feature_Importance_and_Conclusion.ipynb
     │
     ├── requirements.txt   
     └── src                <- Source code scripts.
-        ├── __init__.py    
+        ├── __init__.py    
         │   
-        ├── utilities      <- helper scripts 
-        │   └── cf_matrix.py*
+        ├── utilities      <- helper scripts 
+        │   └── cf_matrix.py*
         │
-        ├── data           <- Scripts to wrangle data
-        │   └── make_dataset.py
+        ├── data           <- Scripts to wrangle data
+        │   └── make_dataset.py
         │
-        ├── features       <- Scripts to turn wrangled data into feature engineered data for modeling
-        │   └── build_features.py
+        ├── features       <- Scripts to turn wrangled data into feature engineered data for modeling
+        │   └── build_features.py
         │
-        └── models         <- Scripts to train models and then use trained models to make predictions
-            └── train_model.py
+        └── models         <- Scripts to train models and then use trained models to make predictions
+            └── train_model.py
 
 
 Acknowledgements and References
@@ -99,3 +99,8 @@ scipy==1.3.1 <br>
 matplotlib==3.1.1 <br>
 seaborn==0.9.0 <br> 
 scikit-plot==0.3.7 <br>
+
+
+--------
+
+<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
