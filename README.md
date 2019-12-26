@@ -1,11 +1,11 @@
-# Udacity Starbucks Data Science Nano Degree Capstone Project
-==============================
+## Udacity Starbucks Data Science Nano Degree Capstone Project
 
-## Project Overview
+
+### Project Overview
 
 This data set contains simulated data that mimics customer behavior on the Starbucks rewards mobile app, provided by Starbucks as a Capstone Project as part of the Udacity Data Science Nano Degree.
 
-## Description
+### Description
 
 Once every few days, Starbucks sends out an offer to users of their mobile app. An offer can be merely an advertisement for a drink or an actual offer such as a discount or BOGO (buy one get one free).
 
@@ -19,17 +19,23 @@ Transactional data is given showing user purchases made on the app including the
 
 A key consideration is that someone using the app might make a purchase through the app without having received an offer or seen an offer.
 
-## Problem
+### Problem
 Build a machine learning model that given customer demographic and historical customer data, can predict whether a particular offer will be completed.
 
 For any customer at any point in time therefore determine the probability that each of the 10 possible offers will be completed and thereby choose the offer that would yield the best revenue or profit maximisation (dependent on business targets).
 
 Can this model be extended to distinguish between responsive offer completions (where a customer views and responds to an offer by actively trying to complete it vs completing it unintentionally as a results of normal spending habits? From a business perspective, customers in the latter case might not be ideal targets.
 
-## Strategy
+### Strategy
 There is extensive historical data provided for each customer as time stamped transactional, offer received, viewed and completed data. My assumption is that this historical data will help distinguish the spending characterics of an individual consumer. Features will need to be engineered that are correlated with a customers offer spending reactivity.
 
 Demographic features (income, gender, age) in addition to specific historical customer feature characteristics will be combined and trained using a gradient boosting machine learning algorithm to make a predictive model.
+
+### Results and insights
+* 85.1% Accuracy achieved using a CatBoost Binary Classification model to determine whether a customer will complete an offer.
+* These results show the strength of the gradient boosting algorithm to solve this kind of problem.
+* In this case we used CatBoost, but other algorithms such as XGBoost or LightGBM could also have been used and we would expect similarly strong results.
+* Many of the features created were highly correlated with each other. One of the strengths in particular of gradient boosted decision trees is the ability to handle and ignore correlation between features. Using a method such as linear regression on the other hand would have been problematic with highly correlated features.
 
 
 Project Organization
