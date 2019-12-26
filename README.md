@@ -42,10 +42,10 @@ Project Organization
 ------------
 
     ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project.
+    ├── README.md          
     ├── data
     │   ├── interim        <- Intermediate and processed data that has been transformed.
-    │   └── raw            <- The original, immutable data dump.
+    │   └── raw            <- The original, immutable data 
     │
     ├── models             <- Trained and serialized models, model predictions, model summaries and results
     │
@@ -57,10 +57,9 @@ Project Organization
     │       ├── 4. Grid_Search.ipynb
     │       └── 5. Feature_Importance_and_ Conclusion.ipynb
     │
-    ├── requirements.txt   <- Required dependencies
-    │   └── cf_matrix.py
+    ├── requirements.txt   
     └── src                <- Source code scripts.
-        ├── __init__.py    <- Makes src a Python module
+        ├── __init__.py    
         │   
         ├── utilities      <- helper scripts 
         │   └── cf_matrix.py*
