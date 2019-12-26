@@ -83,7 +83,7 @@ Acknowledgements and References
 > https://stackoverflow.com/
 > https://www.kaggle.com/
 
-Dependencies used:
+Dependencies used:<br>
 numpy==1.18.0 <br>
 pandas==0.25.1 <br>
 joblib==0.13.2 <br>
