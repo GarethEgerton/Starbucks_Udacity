@@ -1,6 +1,6 @@
 ## Udacity Starbucks Data Science Nano Degree Capstone Project
 
-<a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">Blog Post</a>
+### <a href="https://medium.com/@gareth.egerton/starbucks-udacity-capstone-project-5d3d6776d73">Medium Blog Post</a>
 
 
 ### Project Overview
