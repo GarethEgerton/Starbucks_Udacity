@@ -55,7 +55,7 @@ Project Organization
     │       ├── 2. Feature_engineering.ipynb
     │       ├── 3. Label_engineering.ipynb
     │       ├── 4. Grid_Search.ipynb
-    │       └── 5. Feature_Importance_and_ Conclusion.ipynb
+    │       └── 5. Feature_Importance_and_Conclusion.ipynb
     │
     ├── requirements.txt   
     └── src                <- Source code scripts.
